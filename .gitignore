@@ -1,0 +1,14 @@
+# Never commit secrets or session junk
+secrets.json
+cookies.txt
+*_headers.txt
+*_response.json
+node_modules/
+.DS_Store
+
+# exploration leftovers — may contain captured tokens; keep LOCAL only
+probe*.mjs
+inspect.mjs
+group.js
+ended.json
+.claude/

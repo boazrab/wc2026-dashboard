@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WC2026 · חבר'ה Dashboard</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="ball">⚽</span>
+      <div>
+        <h1>World Cup 2026 — חבר'ה</h1>
+        <p id="subtitle" class="muted">loading…</p>
+      </div>
+    </div>
+    <nav class="tabs">
+      <button class="tab active" data-tab="leaderboard">🏆 Leaderboard</button>
+      <button class="tab" data-tab="scoreboard">📊 Scoreboard</button>
+    </nav>
+  </header>
+
+  <main>
+    <!-- LEADERBOARD -->
+    <section id="leaderboard" class="view active">
+      <div class="toolbar">
+        <div class="round-nav">
+          <button id="roundNewer" class="rbtn" title="Newer round">‹</button>
+          <span id="roundLabel" class="round-label" dir="auto">Round</span>
+          <button id="roundOlder" class="rbtn" title="Older round">›</button>
+        </div>
+        <input id="lbSearch" class="search" type="text" placeholder="Search a friend…" />
+        <span id="lbCount" class="muted"></span>
+        <div class="legend">
+          <span class="chip exact">Exact</span>
+          <span class="chip direction">Direction</span>
+          <span class="chip wrong">Wrong</span>
+        </div>
+      </div>
+      <div class="table-wrap matrix" id="lbWrap"></div>
+    </section>
+
+    <!-- SCOREBOARD -->
+    <section id="scoreboard" class="view">
+      <div class="game-nav">
+        <button id="nextGame" class="navbtn big" title="Newer game">‹</button>
+        <select id="gamePick" class="gamepick"></select>
+        <button id="prevGame" class="navbtn big" title="Older game">›</button>
+      </div>
+      <div id="gameCard" class="game-card"></div>
+      <div class="sb-layout">
+        <div class="sb-main">
+          <div class="toolbar">
+            <input id="sbSearch" class="search" type="text" placeholder="Search a friend…" />
+            <button id="sbFilter" class="filter-tag" hidden></button>
+            <div class="legend">
+              <span class="chip exact">Exact</span>
+              <span class="chip direction">Right direction</span>
+              <span class="chip wrong">Wrong</span>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table class="grid">
+              <thead>
+                <tr><th class="rank">#</th><th>Friend</th><th class="num">Bet</th><th class="num">Points</th></tr>
+              </thead>
+              <tbody id="sbBody"></tbody>
+            </table>
+          </div>
+          <div id="neighbors" class="neighbors"></div>
+        </div>
+        <aside class="sb-side">
+          <h3>Who bet what</h3>
+          <div id="sbDistGame" class="dist-game"></div>
+          <p class="muted">Tap a score to filter the list</p>
+          <div id="sbDist" class="dist"></div>
+        </aside>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
