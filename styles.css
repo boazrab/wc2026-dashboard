@@ -90,7 +90,7 @@ table.grid tbody tr:hover { background: var(--panel-2); }
 .game-round { text-align: center; color: var(--muted); font-size: 13px; margin-top: 8px; }
 
 /* Bet cells */
-.bet { font-weight: 700; padding: 3px 10px; border-radius: 6px; display: inline-block; min-width: 44px; text-align: center; }
+.bet { font-weight: 700; padding: 3px 10px; border-radius: 6px; display: inline-block; min-width: 44px; text-align: center; white-space: nowrap; }
 .bet.exact { background: rgba(46,160,67,.2); color: #56d364; }
 .bet.direction { background: rgba(210,153,34,.2); color: #e3b341; }
 .bet.wrong { background: rgba(110,118,129,.2); color: #adbac7; }
@@ -104,7 +104,7 @@ table.grid tbody tr:hover { background: var(--panel-2); }
 
 /* ---- Leaderboard grid (people × one round) ---- */
 .table-wrap.matrix { overflow: auto; max-height: 80vh; }
-table.matrix-table { border-collapse: separate; border-spacing: 0; table-layout: fixed; }
+table.matrix-table { border-collapse: separate; border-spacing: 0; table-layout: fixed; width: max-content; }
 table.matrix-table th, table.matrix-table td {
   border-bottom: 1px solid var(--line); border-right: 1px solid var(--line);
   white-space: nowrap; padding: 10px 12px; overflow: hidden;
@@ -176,6 +176,41 @@ table.matrix-table th.rtot { color: var(--gold); }
 .gap { font-weight: 700; }
 .gap.ahead { color: #f85149; }   /* they're above you */
 .gap.behind { color: #3fb950; }  /* they're below you */
+
+/* ---------- Mobile ---------- */
+@media (max-width: 600px) {
+  main { padding: 14px 12px 50px; }
+  .topbar { position: static; padding: 12px 14px; }      /* don't pin the title on phones */
+  .brand h1 { font-size: 16px; }
+  .ball { font-size: 26px; }
+  #subtitle { font-size: 12px; }
+
+  /* leaderboard grid: hide the season-pick columns, shrink the rest so games are reachable by swipe */
+  table.matrix-table .f-champ, table.matrix-table .f-scorer { display: none; }
+  .f-rank { left: 0;     width: 32px;  padding-left: 2px; padding-right: 2px; }
+  .f-name { left: 32px;  width: 112px; }
+  .f-name .name { max-width: 112px; }
+  .f-pts  { left: 144px; width: 52px; }
+  .game, .gcell { width: 110px; }
+  .gh img { width: 20px; height: 20px; }
+  .gsc { font-size: 14px; }
+  .gcell .bet { font-size: 14px; padding: 4px 10px; }
+
+  /* scoreboard: roomier tap targets */
+  .game-nav { gap: 8px; }
+  .navbtn.big { padding: 8px 16px; }
+
+  /* scoreboard tables: fit the phone, truncate the name so Points stays visible */
+  #scoreboard .table-wrap { overflow-x: auto; }
+  #scoreboard table.grid { table-layout: fixed; width: 100%; }
+  #scoreboard table.grid th, #scoreboard table.grid td { padding: 10px 6px; }
+  #scoreboard table.grid .rank { width: 30px; }
+  #scoreboard table.grid .num { width: 58px; }
+  #scoreboard table.grid .bet { min-width: 0; padding: 3px 8px; }
+  #scoreboard table.grid th:nth-child(2), #scoreboard table.grid td:nth-child(2) {
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+}
 
 .legend { display: flex; gap: 8px; margin-left: auto; }
 .chip { font-size: 12px; padding: 4px 10px; border-radius: 999px; }

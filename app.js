@@ -157,9 +157,7 @@ function renderLeaderboard() {
     })
     .join("")}</tbody>`;
 
-  // exact total width = frozen columns (456) + games (175 each) + round-total (90)
-  const tw = 456 + games.length * 175 + 90;
-  $("#lbWrap").innerHTML = `<table class="grid matrix-table" style="width:${tw}px">${head}${body}</table>`;
+  $("#lbWrap").innerHTML = `<table class="grid matrix-table">${head}${body}</table>`;
 }
 
 /* ---------- Scoreboard ---------- */
