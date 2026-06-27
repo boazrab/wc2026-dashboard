@@ -6,6 +6,11 @@ cookies.txt
 node_modules/
 .DS_Store
 
+# gh CLI binary (local tooling only)
+gh_*/
+ghcli
+gh.zip
+
 # exploration leftovers — may contain captured tokens; keep LOCAL only
 probe*.mjs
 inspect.mjs
