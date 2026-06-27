@@ -185,16 +185,18 @@ table.matrix-table th.rtot { color: var(--gold); }
   .ball { font-size: 26px; }
   #subtitle { font-size: 12px; }
 
-  /* leaderboard grid: hide the season-pick columns, shrink the rest so games are reachable by swipe */
+  /* leaderboard grid: hide season-pick columns, narrow the rest so TWO games fit a screenshot */
+  table.matrix-table th, table.matrix-table td { padding: 8px 5px; }
   table.matrix-table .f-champ, table.matrix-table .f-scorer { display: none; }
-  .f-rank { left: 0;     width: 32px;  padding-left: 2px; padding-right: 2px; }
-  .f-name { left: 32px;  width: 112px; }
-  .f-name .name { max-width: 112px; }
-  .f-pts  { left: 144px; width: 52px; }
-  .game, .gcell { width: 110px; }
-  .gh img { width: 20px; height: 20px; }
-  .gsc { font-size: 14px; }
-  .gcell .bet { font-size: 14px; padding: 4px 10px; }
+  .f-rank { left: 0;     width: 26px; padding-left: 2px; padding-right: 2px; }
+  .f-name { left: 26px;  width: 86px; }
+  .f-name .name { max-width: 86px; }
+  .f-pts  { left: 112px; width: 56px; font-size: 13px; }
+  .game, .gcell { width: 98px; }
+  .gh { gap: 3px; }
+  .gh img { width: 18px; height: 18px; }
+  .gsc { font-size: 13px; }
+  .gcell .bet { font-size: 13px; padding: 4px 8px; }
 
   /* scoreboard: roomier tap targets */
   .game-nav { gap: 8px; }

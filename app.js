@@ -52,7 +52,7 @@ function gameStatus(g) {
   if (!g.kickoff) return g.result1 != null ? "ended" : "upcoming";
   const now = Date.now();
   if (now < g.kickoff) return "upcoming";
-  if (now <= g.kickoff + 150 * 60 * 1000) return "live";
+  if (now <= g.kickoff + 125 * 60 * 1000) return "live"; // ~game length; dot clears just after full-time
   return "ended";
 }
 

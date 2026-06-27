@@ -41,7 +41,7 @@ console.log(`✅ games: ${rawGames.length}`);
 // Is any game live, about to start, or just finished (settle window)? -5min .. +165min of kickoff
 const now = Date.now();
 const active = rawGames.some(
-  (g) => g.beggining && now >= g.beggining - 5 * 60_000 && now <= g.beggining + 165 * 60_000
+  (g) => g.beggining && now >= g.beggining - 5 * 60_000 && now <= g.beggining + 135 * 60_000
 );
 if (!active && !FORCE) {
   console.log("⏸  no live/recent games — nothing to update, skipping");
@@ -96,7 +96,7 @@ const games = await mapLimit(rawGames, 8, async (g) => {
     team2: { name: g.team2?.name, img: g.team2?.img },
     result1: num(g.result1),
     result2: num(g.result2),
-    odds: { home: num(g.ratio1), draw: num(g.ratio2), away: num(g.ratio3) },
+    odds: { home: num(g.ratio1), away: num(g.ratio2), draw: num(g.ratio3) }, // sport5 order: 1 / 2 / X
     scoring: { bonusExact: g.fixturedata?.bonusExact ?? null, multiplier: g.fixturedata?.pointsMultplyer ?? 1 },
     bets,
   };

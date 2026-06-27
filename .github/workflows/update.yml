@@ -24,6 +24,8 @@ jobs:
         env:
           SPORT5_EMAIL: ${{ secrets.SPORT5_EMAIL }}
           SPORT5_PASSWORD: ${{ secrets.SPORT5_PASSWORD }}
+          # manual "Run workflow" forces a full pull; scheduled runs stay smart (skip when idle)
+          FORCE: ${{ github.event_name == 'workflow_dispatch' && '1' || '' }}
         run: node fetch-data.mjs
       - name: Commit if data changed
         run: |
