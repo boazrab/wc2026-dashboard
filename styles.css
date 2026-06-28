@@ -20,6 +20,7 @@ body {
   color: var(--text);
 }
 .muted { color: var(--muted); font-size: 13px; }
+.stale { color: #f85149; font-weight: 700; }
 
 /* Top bar */
 .topbar {

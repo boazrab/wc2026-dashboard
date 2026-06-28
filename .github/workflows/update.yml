@@ -2,7 +2,7 @@ name: Update dashboard data
 
 on:
   schedule:
-    - cron: "*/30 * * * *"   # backup: restarts the self-loop if it ever dies
+    - cron: "*/10 * * * *"   # backup: restarts the self-loop if it ever dies
   workflow_dispatch:
     inputs:
       auto:
@@ -45,11 +45,13 @@ jobs:
           git config user.name "wc2026-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add data/dashboard.json data/status.json
-          if ! git diff --staged --quiet; then
-            git commit -m "data: auto-update $(date -u +%FT%TZ)"
-            git pull --rebase --autostash
-            git push
-          fi
+          git diff --staged --quiet && exit 0
+          git commit -m "data: auto-update $(date -u +%FT%TZ)"
+          for i in 1 2 3; do
+            git pull --rebase --autostash && git push && exit 0
+            echo "push retry $i…"; sleep 3
+          done
+          echo "push failed after retries — next cycle will catch up"; exit 0
 
       - name: Wait, then trigger the next run (self-loop)
         if: always()                      # CRITICAL: keep the loop alive even if a step failed

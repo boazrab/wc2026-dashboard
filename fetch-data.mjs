@@ -37,16 +37,27 @@ async function login() {
 const cookie = await login();
 console.log("✅ logged in");
 
-const get = (type) =>
-  fetch(`${BASE}/data.php?type=${type}`, { headers: { Cookie: cookie } }).then((r) => r.json());
+// every sport5 call retries a few times so a transient blip never crashes the run
+async function reqJSON(url, opts, tries = 3) {
+  for (let i = 1; i <= tries; i++) {
+    try {
+      const r = await fetch(url, opts);
+      return await r.json();
+    } catch (e) {
+      if (i === tries) throw e;
+      await new Promise((res) => setTimeout(res, i * 1000));
+    }
+  }
+}
+const get = (type) => reqJSON(`${BASE}/data.php?type=${type}`, { headers: { Cookie: cookie } });
 const post = (type, body) =>
-  fetch(`${BASE}/data.php?type=${type}`, {
-    method: "POST", headers: { Cookie: cookie, "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  }).then((r) => r.json());
+  reqJSON(`${BASE}/data.php?type=${type}`, {
+    method: "POST", headers: { Cookie: cookie, "Content-Type": "application/json" }, body: JSON.stringify(body),
+  });
 
 // --- 2) All games (also used to decide whether anything needs updating) ---
 const rawGames = await get("getEndedGames");
+if (!Array.isArray(rawGames)) throw new Error("getEndedGames did not return a list — bad response");
 console.log(`✅ games: ${rawGames.length}`);
 
 // Window helpers around kickoff. "active" = must update; "soon" = loop tight.

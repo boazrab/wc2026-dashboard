@@ -93,8 +93,14 @@ function prepare() {
 }
 
 function updateSubtitle() {
-  const checked = STATUS?.checkedAt ? ` · checked ${ago(STATUS.checkedAt)}` : "";
-  $("#subtitle").textContent = `${DATA.group.name} · ${DATA.members.length} players · updated ${fmtUpdated(DATA.generatedAt)}${checked}`;
+  let checked = "";
+  if (STATUS?.checkedAt) {
+    const mins = (Date.now() - new Date(STATUS.checkedAt)) / 60000;
+    checked = mins > 14
+      ? ` · <span class="stale">⚠️ updates paused (checked ${ago(STATUS.checkedAt)})</span>`
+      : ` · checked ${ago(STATUS.checkedAt)}`;
+  }
+  $("#subtitle").innerHTML = `${esc(DATA.group.name)} · ${DATA.members.length} players · updated ${fmtUpdated(DATA.generatedAt)}${checked}`;
 }
 
 // Pull latest data + heartbeat. Re-render only when the data actually changed (so we don't
