@@ -9,6 +9,7 @@ let scoreFilter = null; // scoreboard: only show people who bet this scoreline
 let sbSort = "gpts";    // scoreboard sort: "gpts" (points this game) or "pos" (overall position)
 let STATUS = null;      // heartbeat from the updater
 let firstLoad = true;
+let statMgrId = null;   // which manager the Stats tab is showing
 
 const $ = (sel) => document.querySelector(sel);
 const img = (path) => (path ? IMG_BASE + path : "");
@@ -86,8 +87,9 @@ function prepare() {
     if (!seen.has(g.round)) { seen.set(g.round, DATA.rounds.length); DATA.rounds.push({ name: g.round, idxs: [] }); }
     DATA.rounds[seen.get(g.round)].idxs.push(i);
   });
+  DATA.ranked = [...DATA.members].sort((a, b) => b.points - a.points);
   DATA.rankById = {};
-  [...DATA.members].sort((a, b) => b.points - a.points).forEach((m, i) => { DATA.rankById[m.id] = i + 1; });
+  DATA.ranked.forEach((m, i) => { DATA.rankById[m.id] = i + 1; });
 }
 
 function updateSubtitle() {
@@ -109,15 +111,19 @@ async function refresh() {
       roundIdx = DATA.rounds.length - 1;
       const lastPlayed = DATA.games.map((g, i) => (g.result1 != null ? i : -1)).filter((i) => i >= 0).pop();
       gameIndex = lastPlayed ?? DATA.games.length - 1;
+      statMgrId = (DATA.members.find((m) => m.name === MY_NAME) || DATA.ranked[0]).id; // default = me
       firstLoad = false;
     } else {
       roundIdx = Math.min(roundIdx, DATA.rounds.length - 1);
       gameIndex = Math.min(gameIndex, DATA.games.length - 1);
+      if (!DATA.members.some((m) => m.id === statMgrId)) statMgrId = DATA.ranked[0].id;
     }
     buildGamePicker();
+    buildMgrPicker();
     const sl = $("#lbWrap")?.scrollLeft || 0, sy = window.scrollY; // preserve scroll across re-render
     renderLeaderboard();
     renderScoreboard();
+    renderStats();
     if ($("#lbWrap")) $("#lbWrap").scrollLeft = sl;
     window.scrollTo(0, sy);
   }
@@ -326,6 +332,117 @@ function renderNeighbors(g) {
     </table></div>`;
 }
 
+/* ---------- Stats (per-manager scouting) ---------- */
+// field-wide averages, for comparison
+function fieldStats() {
+  if (DATA._field) return DATA._field;
+  let bets = 0, draw = 0, goals = 0, exact = 0, decided = 0;
+  DATA.members.forEach((m) =>
+    DATA.games.forEach((g) => {
+      const b = g._byId[m.id];
+      if (!b || b.g1 == null) return;
+      bets++; goals += b.g1 + b.g2; if (b.g1 === b.g2) draw++;
+      if (g.result1 != null) { decided++; if (b.g1 === g.result1 && b.g2 === g.result2) exact++; }
+    })
+  );
+  return (DATA._field = {
+    drawPct: bets ? (draw / bets) * 100 : 0,
+    avgGoals: bets ? goals / bets : 0,
+    exactPct: decided ? (exact / decided) * 100 : 0,
+  });
+}
+
+function managerStats(id) {
+  const m = DATA.members.find((x) => x.id === id) || DATA.ranked[0];
+  let bets = 0, exact = 0, outcome = 0, wrong = 0, goals = 0, home = 0, draw = 0, away = 0, best = 0, favBacked = 0, favGames = 0;
+  const sc = {};
+  DATA.games.forEach((g) => {
+    const b = g._byId[m.id];
+    if (!b || b.g1 == null) return;
+    bets++; goals += b.g1 + b.g2;
+    sc[`${b.g1}-${b.g2}`] = (sc[`${b.g1}-${b.g2}`] || 0) + 1;
+    if (b.g1 > b.g2) home++; else if (b.g1 < b.g2) away++; else draw++;
+    best = Math.max(best, b.score || 0);
+    if (g.odds && g.odds.home != null && g.odds.away != null) {
+      favGames++;
+      const favHome = g.odds.home <= g.odds.away;
+      if ((favHome && b.g1 > b.g2) || (!favHome && b.g1 < b.g2)) favBacked++;
+    }
+    if (g.result1 != null) {
+      if (b.g1 === g.result1 && b.g2 === g.result2) exact++;
+      else if (Math.sign(b.g1 - b.g2) === Math.sign(g.result1 - g.result2)) outcome++;
+      else wrong++;
+    }
+  });
+  const decided = exact + outcome + wrong;
+  const fav = Object.entries(sc).sort((a, b) => b[1] - a[1])[0] || ["—", 0];
+  return {
+    m, rank: DATA.rankById[m.id], bets, exact, outcome, wrong, decided, best,
+    avgGoals: bets ? goals / bets : 0,
+    homePct: bets ? (home / bets) * 100 : 0, drawPct: bets ? (draw / bets) * 100 : 0, awayPct: bets ? (away / bets) * 100 : 0,
+    exactPct: decided ? (exact / decided) * 100 : 0, rightPct: decided ? ((exact + outcome) / decided) * 100 : 0,
+    favScore: fav[0], favCount: fav[1], favBackPct: favGames ? (favBacked / favGames) * 100 : 0,
+  };
+}
+
+// auto-generated "scouting report" lines from the numbers
+function scouting(s, f) {
+  const r = Math.round, out = [];
+  if (s.drawPct >= Math.max(28, f.drawPct * 1.4)) out.push(`🤝 <b>Draw merchant</b> — predicts a draw ${r(s.drawPct)}% of the time (field avg ${r(f.drawPct)}%).`);
+  if (s.avgGoals >= f.avgGoals + 0.6) out.push(`⚽ <b>Goal glutton</b> — averages ${s.avgGoals.toFixed(1)} goals/game (field ${f.avgGoals.toFixed(1)}).`);
+  if (s.avgGoals <= f.avgGoals - 0.6) out.push(`🧱 <b>The Parker</b> — defensive, just ${s.avgGoals.toFixed(1)} goals/game (field ${f.avgGoals.toFixed(1)}).`);
+  if (s.exactPct >= f.exactPct + 4) out.push(`🎯 <b>Sniper</b> — nails the exact score ${r(s.exactPct)}% (field ${r(f.exactPct)}%).`);
+  if (s.favCount >= 8) out.push(`🔁 <b>Creature of habit</b> — bet <b>${esc(s.favScore)}</b> in ${s.favCount} different games.`);
+  if (s.favBackPct >= 70) out.push(`💰 <b>Chalk-eater</b> — backs the bookies' favourite ${r(s.favBackPct)}% of the time.`);
+  else if (s.favGames && s.favBackPct <= 45) out.push(`🃏 <b>Contrarian</b> — backs the favourite only ${r(s.favBackPct)}% — loves an upset.`);
+  if (!out.length) out.push("🎲 <b>Wildcard</b> — no obvious pattern. Genuinely hard to read.");
+  return out.slice(0, 4);
+}
+
+function buildMgrPicker() {
+  $("#mgrPick").innerHTML = DATA.ranked.map((m) => `<option value="${m.id}">#${DATA.rankById[m.id]} ${esc(m.name)}</option>`).join("");
+}
+
+function renderStats() {
+  if (!statMgrId) return;
+  const s = managerStats(statMgrId), f = fieldStats(), m = s.m;
+  $("#mgrPick").value = statMgrId;
+  const pick = (p) => (p ? `<div class="pick"><img src="${img(p.img)}" loading="lazy" alt=""><span dir="auto">${esc(p.name)}</span></div>` : "—");
+  const tile = (label, val, sub = "") => `<div class="tile"><div class="tval">${val}</div><div class="tlabel">${label}</div>${sub ? `<div class="tsub">${sub}</div>` : ""}</div>`;
+  const bar = (label, pct, extra = "") =>
+    `<div class="srow"><span class="sl">${label}</span><span class="sbar"><span style="width:${Math.round(pct)}%"></span></span><span class="sv">${Math.round(pct)}%${extra}</span></div>`;
+  $("#statBody").innerHTML = `
+    <div class="stat-head">
+      <div><div class="sh-rank">#${s.rank}</div><div class="sh-name" dir="auto">${esc(m.name)}${m.name === MY_NAME ? ' <span class="muted">(you)</span>' : ""}</div></div>
+      <div class="sh-pts">${m.points}<span class="muted"> pts</span></div>
+    </div>
+    <div class="picks-row">
+      <div class="pickbox"><div class="muted">🏆 Champion pick</div>${pick(m.champion)}</div>
+      <div class="pickbox"><div class="muted">⚽ Top scorer pick</div>${pick(m.scorer)}</div>
+    </div>
+    <div class="tiles">
+      ${tile("Games bet", s.bets)}
+      ${tile("Exact scores", s.exact, `${Math.round(s.exactPct)}% of decided`)}
+      ${tile("Right result", s.outcome, "outcome only")}
+      ${tile("Missed", s.wrong, `${Math.round(100 - s.rightPct)}% wrong`)}
+      ${tile("Pts · guesses", m.pointsFromGuesses)}
+      ${tile("Pts · top scorer", m.pointsFromScorer)}
+      ${tile("Pts · champion", m.pointsFromChampion)}
+      ${tile("Best game", s.best + " pts")}
+    </div>
+    <h3 class="stat-h">Playing style</h3>
+    <div class="style">
+      ${bar("Home win", s.homePct)}
+      ${bar("Draw", s.drawPct, ` <span class="muted">· field ${Math.round(f.drawPct)}%</span>`)}
+      ${bar("Away win", s.awayPct)}
+      <div class="srow"><span class="sl">Avg goals/game</span><span class="sv2">${s.avgGoals.toFixed(1)} <span class="muted">· field ${f.avgGoals.toFixed(1)}</span></span></div>
+      <div class="srow"><span class="sl">Favourite scoreline</span><span class="sv2" dir="auto">${esc(s.favScore)} <span class="muted">×${s.favCount}</span></span></div>
+      <div class="srow"><span class="sl">Backs the favourite</span><span class="sv2">${Math.round(s.favBackPct)}%</span></div>
+    </div>
+    <h3 class="stat-h">Scouting report 🕵️</h3>
+    <ul class="scout">${scouting(s, f).map((x) => `<li>${x}</li>`).join("")}</ul>`;
+}
+
 /* ---------- Tabs ---------- */
 function showTab(name) {
   document.querySelectorAll(".tab").forEach((x) => x.classList.toggle("active", x.dataset.tab === name));
@@ -369,6 +486,17 @@ $("#sbFilter").addEventListener("click", () => { scoreFilter = null; renderScore
 document.querySelectorAll("#scoreboard th.sortable").forEach((th) =>
   th.addEventListener("click", () => { sbSort = th.dataset.sort; renderScoreboard(); })
 );
+
+// Stats: pick a manager to scout (default = you), step through the table with ‹ ›
+$("#mgrPick").addEventListener("change", (e) => { statMgrId = e.target.value; renderStats(); });
+$("#mgrPrev").addEventListener("click", () => {
+  const i = DATA.ranked.findIndex((m) => m.id === statMgrId);
+  if (i > 0) { statMgrId = DATA.ranked[i - 1].id; renderStats(); }
+});
+$("#mgrNext").addEventListener("click", () => {
+  const i = DATA.ranked.findIndex((m) => m.id === statMgrId);
+  if (i < DATA.ranked.length - 1) { statMgrId = DATA.ranked[i + 1].id; renderStats(); }
+});
 
 refresh();
 setInterval(refresh, 60_000); // page keeps itself fresh; heartbeat ticks even when idle

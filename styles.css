@@ -170,6 +170,31 @@ table.matrix-table th.rtot { color: var(--gold); }
 .filter-tag { background: rgba(31,111,235,.15); color: var(--me); border: 1px solid var(--me); border-radius: 999px; padding: 7px 13px; cursor: pointer; font-size: 13px; }
 .sortable { cursor: pointer; user-select: none; }
 .sortable:hover { color: var(--text); }
+
+/* ---- Stats / scouting ---- */
+.stat-head { display: flex; justify-content: space-between; align-items: center; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px 20px; }
+.sh-rank { color: var(--gold); font-weight: 700; font-size: 13px; }
+.sh-name { font-size: 20px; font-weight: 700; }
+.sh-pts { font-size: 26px; font-weight: 800; }
+.picks-row { display: flex; gap: 12px; margin-top: 12px; }
+.pickbox { flex: 1; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
+.pickbox .pick { margin-top: 8px; }
+.pickbox .pick img { width: 26px; height: 26px; border-radius: 4px; object-fit: cover; }
+.tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 12px; }
+.tile { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 10px; text-align: center; }
+.tval { font-size: 24px; font-weight: 800; }
+.tlabel { font-size: 11px; color: var(--muted); margin-top: 4px; text-transform: uppercase; letter-spacing: .4px; }
+.tsub { font-size: 11px; color: var(--muted); margin-top: 3px; }
+.stat-h { margin: 22px 0 10px; font-size: 15px; }
+.style { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 10px 18px; }
+.srow { display: flex; align-items: center; gap: 12px; padding: 8px 0; }
+.srow .sl { width: 140px; color: var(--muted); font-size: 13px; }
+.srow .sbar { flex: 1; height: 10px; background: var(--bg); border-radius: 5px; overflow: hidden; }
+.srow .sbar span { display: block; height: 100%; background: var(--me); }
+.srow .sv { width: 110px; text-align: right; font-weight: 700; font-size: 13px; }
+.srow .sv2 { margin-left: auto; font-weight: 700; }
+.scout { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.scout li { background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 11px 14px; font-size: 14px; }
 @media (max-width: 760px) { .sb-layout { flex-direction: column; } .sb-side { width: auto; align-self: stretch; order: -1; } }
 
 /* Around-you (rivals) table */
@@ -203,6 +228,11 @@ table.matrix-table th.rtot { color: var(--gold); }
   /* scoreboard: roomier tap targets */
   .game-nav { gap: 8px; }
   .navbtn.big { padding: 8px 16px; }
+
+  /* stats: two-up tiles + tighter rows on phones */
+  .tiles { grid-template-columns: repeat(2, 1fr); }
+  .srow .sl { width: 104px; }
+  .srow .sv { width: auto; }
 
   /* scoreboard tables: fit the phone, truncate the name so Points stays visible */
   #scoreboard .table-wrap { overflow-x: auto; }
