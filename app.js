@@ -432,12 +432,10 @@ function renderStats() {
     </div>
     <h3 class="stat-h">Playing style</h3>
     <div class="style">
-      ${bar("Home win", s.homePct)}
-      ${bar("Draw", s.drawPct, ` <span class="muted">· field ${Math.round(f.drawPct)}%</span>`)}
-      ${bar("Away win", s.awayPct)}
+      ${bar("Predicts a draw", s.drawPct, ` <span class="muted">· field ${Math.round(f.drawPct)}%</span>`)}
+      ${bar("Backs the favourite", s.favBackPct, ` <span class="muted">· by odds</span>`)}
       <div class="srow"><span class="sl">Avg goals/game</span><span class="sv2">${s.avgGoals.toFixed(1)} <span class="muted">· field ${f.avgGoals.toFixed(1)}</span></span></div>
       <div class="srow"><span class="sl">Favourite scoreline</span><span class="sv2" dir="auto">${esc(s.favScore)} <span class="muted">×${s.favCount}</span></span></div>
-      <div class="srow"><span class="sl">Backs the favourite</span><span class="sv2">${Math.round(s.favBackPct)}%</span></div>
     </div>
     <h3 class="stat-h">Scouting report 🕵️</h3>
     <ul class="scout">${scouting(s, f).map((x) => `<li>${x}</li>`).join("")}</ul>`;
