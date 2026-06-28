@@ -168,6 +168,8 @@ table.matrix-table th.rtot { color: var(--gold); }
 .distrow .barfill { display: block; height: 100%; background: var(--me); }
 .distrow .cnt { font-weight: 700; min-width: 24px; text-align: right; }
 .filter-tag { background: rgba(31,111,235,.15); color: var(--me); border: 1px solid var(--me); border-radius: 999px; padding: 7px 13px; cursor: pointer; font-size: 13px; }
+.sortable { cursor: pointer; user-select: none; }
+.sortable:hover { color: var(--text); }
 @media (max-width: 760px) { .sb-layout { flex-direction: column; } .sb-side { width: auto; align-self: stretch; order: -1; } }
 
 /* Around-you (rivals) table */

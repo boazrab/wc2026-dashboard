@@ -2,35 +2,58 @@ name: Update dashboard data
 
 on:
   schedule:
-    - cron: "*/5 * * * *"   # every ~5 minutes
-  workflow_dispatch: {}       # gives you an "update now" button on GitHub
+    - cron: "*/30 * * * *"   # backup: restarts the self-loop if it ever dies
+  workflow_dispatch:
+    inputs:
+      auto:
+        description: "internal flag set by the self-loop (leave false for a manual update)"
+        default: "false"
 
 permissions:
-  contents: write             # allow the bot to commit fresh data
+  contents: write             # commit fresh data
+  actions: write              # trigger the next run (self-loop)
 
-concurrency:                  # never run two updates at once
+concurrency:
   group: update
-  cancel-in-progress: false
+  cancel-in-progress: true    # keep exactly one loop alive
 
 jobs:
   update:
     runs-on: ubuntu-latest
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
+
       - name: Fetch latest data
+        id: fetch
         env:
           SPORT5_EMAIL: ${{ secrets.SPORT5_EMAIL }}
           SPORT5_PASSWORD: ${{ secrets.SPORT5_PASSWORD }}
-          # manual "Run workflow" forces a full pull; scheduled runs stay smart (skip when idle)
-          FORCE: ${{ github.event_name == 'workflow_dispatch' && '1' || '' }}
-        run: node fetch-data.mjs
+          # a human pressing "Run workflow" forces a full pull; the self-loop (auto=true) and the schedule stay smart
+          FORCE: ${{ (github.event_name == 'workflow_dispatch' && inputs.auto != 'true') && '1' || '' }}
+        run: |
+          OUT=$(node fetch-data.mjs); echo "$OUT"
+          S=$(echo "$OUT" | grep -oE 'NEXT_SLEEP=[0-9]+' | tail -1 | cut -d= -f2)
+          echo "sleep=${S:-900}" >> "$GITHUB_OUTPUT"
+
       - name: Commit if data changed
         run: |
           git config user.name "wc2026-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add data/dashboard.json
-          git diff --staged --quiet || git commit -m "data: auto-update $(date -u +%FT%TZ)"
-          git push
+          if ! git diff --staged --quiet; then
+            git commit -m "data: auto-update $(date -u +%FT%TZ)"
+            git pull --rebase --autostash
+            git push
+          fi
+
+      - name: Wait, then trigger the next run (self-loop)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          echo "next run in ${{ steps.fetch.outputs.sleep }}s"
+          sleep ${{ steps.fetch.outputs.sleep }}
+          gh workflow run update.yml --ref main -f auto=true

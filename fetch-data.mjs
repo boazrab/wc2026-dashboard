@@ -38,13 +38,22 @@ const post = (type, body) =>
 const rawGames = await get("getEndedGames");
 console.log(`✅ games: ${rawGames.length}`);
 
-// Is any game live, about to start, or just finished (settle window)? -5min .. +165min of kickoff
+// Window helpers around kickoff. "active" = must update; "soon" = loop tight.
 const now = Date.now();
-const active = rawGames.some(
-  (g) => g.beggining && now >= g.beggining - 5 * 60_000 && now <= g.beggining + 135 * 60_000
-);
+const inWindow = (g, leadMin) =>
+  g.beggining && now >= g.beggining - leadMin * 60_000 && now <= g.beggining + 135 * 60_000;
+const active = rawGames.some((g) => inWindow(g, 5));   // live or just finished
+const soon = rawGames.some((g) => inWindow(g, 20));    // kicks off within 20 min
+
+// Recommend how long the self-loop should wait before the next run (read by the workflow).
+const upcoming = rawGames.map((g) => g.beggining).filter((t) => t && t > now).sort((a, b) => a - b)[0];
+let nextSleep = 1800; // idle: 30 min
+if (active || soon) nextSleep = 300; // games on/imminent: 5 min
+else if (upcoming && upcoming - now < 3 * 3600_000) nextSleep = 900; // game within 3h: 15 min
+console.log(`NEXT_SLEEP=${nextSleep}`);
+
 if (!active && !FORCE) {
-  console.log("⏸  no live/recent games — nothing to update, skipping");
+  console.log("⏸  no live/recent games — skipping update");
   process.exit(0);
 }
 

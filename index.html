@@ -63,7 +63,12 @@
           <div class="table-wrap">
             <table class="grid">
               <thead>
-                <tr><th class="rank">#</th><th>Friend</th><th class="num">Bet</th><th class="num">Points</th></tr>
+                <tr>
+                  <th class="rank sortable" data-sort="pos" title="Overall table position — tap to sort">Pos</th>
+                  <th>Friend</th>
+                  <th class="num">Bet</th>
+                  <th class="num sortable" data-sort="gpts" title="Points this game — tap to sort">Pts</th>
+                </tr>
               </thead>
               <tbody id="sbBody"></tbody>
             </table>

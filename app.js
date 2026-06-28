@@ -6,6 +6,7 @@ let DATA = null;
 let gameIndex = 0;     // scoreboard: which game is shown
 let roundIdx = 0;      // leaderboard: which round is shown
 let scoreFilter = null; // scoreboard: only show people who bet this scoreline
+let sbSort = "gpts";    // scoreboard sort: "gpts" (points this game) or "pos" (overall position)
 
 const $ = (sel) => document.querySelector(sel);
 const img = (path) => (path ? IMG_BASE + path : "");
@@ -82,6 +83,10 @@ async function load() {
     DATA.rounds[seen.get(g.round)].idxs.push(i);
   });
   roundIdx = DATA.rounds.length - 1; // default = current (latest) round
+
+  // overall standings position for each friend (used in the scoreboard)
+  DATA.rankById = {};
+  [...DATA.members].sort((a, b) => b.points - a.points).forEach((m, i) => { DATA.rankById[m.id] = i + 1; });
 
   $("#subtitle").textContent = `${DATA.group.name} · ${DATA.members.length} players · ${DATA.games.length} games · updated ${fmtUpdated(DATA.generatedAt)}`;
 
@@ -196,18 +201,26 @@ function renderScoreboard() {
   else tag.hidden = true;
 
   const q = $("#sbSearch").value.trim().toLowerCase();
-  const bets = [...g.bets]
-    .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
+  let bets = g.bets
     .filter((b) => !q || (b.name || "").toLowerCase().includes(q))
     .filter((b) => !scoreFilter || (b.g1 != null && `${b.g1}-${b.g2}` === scoreFilter));
+  bets = [...bets].sort(sbSort === "pos"
+    ? (a, b) => (DATA.rankById[a.id] || 999) - (DATA.rankById[b.id] || 999)
+    : (a, b) => (b.score ?? 0) - (a.score ?? 0));
+
+  // show which column is the active sort
+  document.querySelectorAll("#scoreboard th.sortable").forEach((th) => {
+    const base = th.dataset.sort === "pos" ? "Pos" : "Pts";
+    th.textContent = base + (sbSort === th.dataset.sort ? " ▾" : "");
+  });
 
   $("#sbBody").innerHTML = bets
-    .map((b, i) => {
+    .map((b) => {
       const v = betClass(b.score ?? 0, b.g1, b.g2, g.result1, g.result2);
       const me = b.name === MY_NAME ? "row-me" : "";
       const betTxt = b.g1 == null ? "—" : `${b.g1}-${b.g2}`;
       return `<tr class="${me}">
-        <td class="rank">${i + 1}</td>
+        <td class="rank">${DATA.rankById[b.id] ?? "—"}</td>
         <td><span class="name" dir="auto">${esc(b.name)}</span></td>
         <td class="num"><span class="bet ${v}">${betTxt}</span></td>
         <td class="num pts">${b.score ?? 0}</td>
@@ -326,5 +339,10 @@ $("#sbDist").addEventListener("click", (e) => {
   renderScoreboard();
 });
 $("#sbFilter").addEventListener("click", () => { scoreFilter = null; renderScoreboard(); });
+
+// sort the scoreboard by overall Position or this-game Points
+document.querySelectorAll("#scoreboard th.sortable").forEach((th) =>
+  th.addEventListener("click", () => { sbSort = th.dataset.sort; renderScoreboard(); })
+);
 
 load();
