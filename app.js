@@ -385,6 +385,51 @@ function managerStats(id) {
   };
 }
 
+// Luck index per manager: blend of (A) points vs odds-expectation, (B) exact-score
+// over-performance, (C) cashing upsets — each z-normalised across all managers, then
+// mapped to a 0-100% red→green meter.
+function luckAll() {
+  if (DATA._luck) return DATA._luck;
+  const fEx = fieldStats().exactPct / 100; // field exact-hit rate
+  const gNorm = DATA.games.map((g) => {
+    const o = g.odds;
+    return o && o.home && o.draw && o.away ? 1 / o.home + 1 / o.draw + 1 / o.away : null; // overround
+  });
+  const per = {};
+  DATA.members.forEach((m) => {
+    let actual = 0, ev = 0, decided = 0, exact = 0, upsets = 0, upsetOdds = 0;
+    DATA.games.forEach((g, i) => {
+      const b = g._byId[m.id];
+      if (!b || b.g1 == null || g.result1 == null || !gNorm[i]) return;
+      decided++;
+      actual += b.score || 0;
+      ev += 1 / gNorm[i] + fEx * (g.scoring?.bonusExact ?? 4); // fair EV: outcome + baseline exact bonus
+      const oPick = b.g1 > b.g2 ? g.odds.home : b.g1 < b.g2 ? g.odds.away : g.odds.draw;
+      const right = Math.sign(b.g1 - b.g2) === Math.sign(g.result1 - g.result2);
+      if (right && oPick >= 3.5) { upsets++; upsetOdds += oPick; }
+      if (b.g1 === g.result1 && b.g2 === g.result2) exact++;
+    });
+    per[m.id] = {
+      decided, actual, ev, exact, upsets, upsetOdds: upsets ? upsetOdds / upsets : 0, expExact: decided * fEx,
+      A: decided ? (actual - ev) / decided : 0,
+      B: decided ? (exact - decided * fEx) / decided : 0,
+      C: decided ? upsets / decided : 0,
+    };
+  });
+  const znorm = (key) => {
+    const v = Object.values(per).map((p) => p[key]);
+    const mean = v.reduce((a, b) => a + b, 0) / v.length;
+    const sd = Math.sqrt(v.reduce((a, b) => a + (b - mean) ** 2, 0) / v.length) || 1;
+    Object.values(per).forEach((p) => { p["z" + key] = (p[key] - mean) / sd; });
+  };
+  znorm("A"); znorm("B"); znorm("C");
+  Object.values(per).forEach((p) => {
+    p.luckZ = (p.zA + p.zB + p.zC) / 3;
+    p.percent = Math.max(2, Math.min(98, Math.round(50 + p.luckZ * 20)));
+  });
+  return (DATA._luck = { per });
+}
+
 // auto-generated "scouting report" lines from the numbers
 function scouting(s, f) {
   const r = Math.round, out = [];
@@ -407,6 +452,18 @@ function renderStats() {
   if (!statMgrId) return;
   const s = managerStats(statMgrId), f = fieldStats(), m = s.m;
   $("#mgrPick").value = statMgrId;
+
+  const L = luckAll().per[m.id] || { percent: 50, actual: 0, ev: 0, exact: 0, expExact: 0, upsets: 0, upsetOdds: 0 };
+  const lvl = L.percent >= 80 ? ["Very lucky", "lucky"] : L.percent >= 62 ? ["Lucky", "lucky"]
+    : L.percent >= 38 ? ["About average", "avg"] : L.percent >= 20 ? ["Unlucky", "unlucky"] : ["Very unlucky", "unlucky"];
+  const delta = Math.round(L.actual - L.ev);
+  const luckLines = [
+    `Earned <b>${Math.round(L.actual)}</b> guess pts vs <b>~${Math.round(L.ev)}</b> the odds expected — <b>${delta >= 0 ? "+" : ""}${delta}</b> ${delta >= 0 ? "above" : "below"} par.`,
+    `Hit <b>${L.exact}</b> exact score${L.exact === 1 ? "" : "s"} vs ~${L.expExact.toFixed(1)} expected${L.upsets ? `, and cashed <b>${L.upsets}</b> against-the-odds result${L.upsets > 1 ? "s" : ""} (avg odds ${L.upsetOdds.toFixed(1)})` : ""}.`,
+    L.percent < 38 ? "Translation: sensible bets, cruel results — you're due a turnaround. 🫠"
+      : L.percent >= 62 ? "Translation: the ball keeps bouncing your way. 🔥"
+      : "Translation: roughly what the odds predicted — fair and square.",
+  ];
   const pick = (p) => (p ? `<div class="pick"><img src="${img(p.img)}" loading="lazy" alt=""><span dir="auto">${esc(p.name)}</span></div>` : "—");
   const tile = (label, val, sub = "") => `<div class="tile"><div class="tval">${val}</div><div class="tlabel">${label}</div>${sub ? `<div class="tsub">${sub}</div>` : ""}</div>`;
   const bar = (label, pct, extra = "") =>
@@ -436,6 +493,12 @@ function renderStats() {
       ${bar("Backs the favourite", s.favBackPct, ` <span class="muted">· by odds</span>`)}
       <div class="srow"><span class="sl">Avg goals/game</span><span class="sv2">${s.avgGoals.toFixed(1)} <span class="muted">· field ${f.avgGoals.toFixed(1)}</span></span></div>
       <div class="srow"><span class="sl">Favourite scoreline</span><span class="sv2" dir="auto">${esc(s.favScore)} <span class="muted">×${s.favCount}</span></span></div>
+    </div>
+    <h3 class="stat-h">Luck-o-meter 🍀</h3>
+    <div class="luckbox">
+      <div class="luckhead"><span class="lucklevel ${lvl[1]}">${lvl[0]}</span><span class="luckpct">${L.percent}%</span></div>
+      <div class="luckbar"><div class="luckmark" style="left:${L.percent}%"></div></div>
+      <ul class="scout">${luckLines.map((x) => `<li>${x}</li>`).join("")}</ul>
     </div>
     <h3 class="stat-h">Scouting report 🕵️</h3>
     <ul class="scout">${scouting(s, f).map((x) => `<li>${x}</li>`).join("")}</ul>`;

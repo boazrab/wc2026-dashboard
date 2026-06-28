@@ -195,6 +195,18 @@ table.matrix-table th.rtot { color: var(--gold); }
 .srow .sv2 { margin-left: auto; font-weight: 700; }
 .scout { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
 .scout li { background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 11px 14px; font-size: 14px; }
+
+/* luck-o-meter */
+.luckbox { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; }
+.luckhead { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; }
+.lucklevel { font-weight: 800; font-size: 18px; }
+.lucklevel.lucky { color: #3fb950; }
+.lucklevel.unlucky { color: #f85149; }
+.lucklevel.avg { color: #e3b341; }
+.luckpct { font-weight: 800; font-size: 22px; }
+.luckbar { position: relative; height: 16px; border-radius: 8px; background: linear-gradient(90deg, #f85149 0%, #e3b341 50%, #3fb950 100%); }
+.luckmark { position: absolute; top: -5px; width: 5px; height: 26px; background: #fff; border-radius: 3px; transform: translateX(-50%); box-shadow: 0 0 0 2px rgba(0,0,0,.55); }
+.luckbox .scout { margin-top: 14px; }
 @media (max-width: 760px) { .sb-layout { flex-direction: column; } .sb-side { width: auto; align-self: stretch; order: -1; } }
 
 /* Around-you (rivals) table */
