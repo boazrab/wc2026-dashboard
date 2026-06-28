@@ -17,13 +17,24 @@ const creds = process.env.SPORT5_EMAIL
 
 const num = (v) => (v === "" || v == null ? null : Number(v));
 
-// --- 1) Log in, grab the session cookie ---
-const loginRes = await fetch(`${BASE}/data.php?type=loginUser`, {
-  method: "POST", headers: { "Content-Type": "application/json" },
-  body: JSON.stringify(creds),
-});
-const cookie = (loginRes.headers.get("set-cookie") || "").split(";")[0];
-if (!cookie) throw new Error("Login failed — no cookie");
+// --- 1) Log in, grab the session cookie (retry — sport5 occasionally blips) ---
+async function login() {
+  for (let attempt = 1; attempt <= 4; attempt++) {
+    try {
+      const res = await fetch(`${BASE}/data.php?type=loginUser`, {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(creds),
+      });
+      const c = (res.headers.get("set-cookie") || "").split(";")[0];
+      if (c) return c;
+      console.log(`login attempt ${attempt}: no cookie, retrying…`);
+    } catch (e) {
+      console.log(`login attempt ${attempt} failed (${e.message}), retrying…`);
+    }
+    await new Promise((r) => setTimeout(r, attempt * 1500));
+  }
+  throw new Error("Login failed after 4 attempts — no cookie");
+}
+const cookie = await login();
 console.log("✅ logged in");
 
 const get = (type) =>

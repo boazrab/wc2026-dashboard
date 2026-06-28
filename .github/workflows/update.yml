@@ -40,6 +40,7 @@ jobs:
           echo "sleep=${S:-900}" >> "$GITHUB_OUTPUT"
 
       - name: Commit if data changed
+        if: always()                      # even if the fetch blipped
         run: |
           git config user.name "wc2026-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -51,9 +52,11 @@ jobs:
           fi
 
       - name: Wait, then trigger the next run (self-loop)
+        if: always()                      # CRITICAL: keep the loop alive even if a step failed
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          echo "next run in ${{ steps.fetch.outputs.sleep }}s"
-          sleep ${{ steps.fetch.outputs.sleep }}
+          SLEEP="${{ steps.fetch.outputs.sleep }}"
+          echo "next run in ${SLEEP:-300}s"
+          sleep "${SLEEP:-300}"
           gh workflow run update.yml --ref main -f auto=true
