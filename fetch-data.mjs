@@ -42,18 +42,17 @@ console.log(`✅ games: ${rawGames.length}`);
 const now = Date.now();
 const inWindow = (g, leadMin) =>
   g.beggining && now >= g.beggining - leadMin * 60_000 && now <= g.beggining + 135 * 60_000;
-const active = rawGames.some((g) => inWindow(g, 5));   // live or just finished
-const soon = rawGames.some((g) => inWindow(g, 20));    // kicks off within 20 min
+const active = rawGames.some((g) => inWindow(g, 5)); // live or just finished
 
-// Recommend how long the self-loop should wait before the next run (read by the workflow).
-const upcoming = rawGames.map((g) => g.beggining).filter((t) => t && t > now).sort((a, b) => a - b)[0];
-let nextSleep = 1800; // idle: 30 min
-if (active || soon) nextSleep = 300; // games on/imminent: 5 min
-else if (upcoming && upcoming - now < 3 * 3600_000) nextSleep = 900; // game within 3h: 15 min
-console.log(`NEXT_SLEEP=${nextSleep}`);
+// Always check every 5 min so the "checked" heartbeat stays fresh.
+console.log(`NEXT_SLEEP=300`);
+
+// Heartbeat: lets the site show "checked X ago" even when nothing changed.
+mkdirSync("./data", { recursive: true });
+writeFileSync("./data/status.json", JSON.stringify({ checkedAt: new Date().toISOString(), live: active }));
 
 if (!active && !FORCE) {
-  console.log("⏸  no live/recent games — skipping update");
+  console.log("⏸  no live/recent games — heartbeat only, skipping data pull");
   process.exit(0);
 }
 

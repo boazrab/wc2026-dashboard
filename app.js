@@ -7,6 +7,8 @@ let gameIndex = 0;     // scoreboard: which game is shown
 let roundIdx = 0;      // leaderboard: which round is shown
 let scoreFilter = null; // scoreboard: only show people who bet this scoreline
 let sbSort = "gpts";    // scoreboard sort: "gpts" (points this game) or "pos" (overall position)
+let STATUS = null;      // heartbeat from the updater
+let firstLoad = true;
 
 const $ = (sel) => document.querySelector(sel);
 const img = (path) => (path ? IMG_BASE + path : "");
@@ -66,37 +68,60 @@ function betClass(score, g1, g2, r1, r2) {
   return score > 0 ? "direction" : "wrong";
 }
 
-async function load() {
-  DATA = await (await fetch("./data/dashboard.json")).json();
+const fetchJSON = async (path) => (await fetch(`${path}?t=${Date.now()}`)).json(); // cache-bust for freshness
 
-  // index each game's bets by friend id
-  DATA.games.forEach((g) => {
-    g._byId = {};
-    g.bets.forEach((b) => { g._byId[b.id] = b; });
-  });
+function ago(iso) {
+  const s = Math.max(0, Math.floor((Date.now() - new Date(iso)) / 1000));
+  if (s < 60) return `${s}s ago`;
+  if (s < 3600) return `${Math.floor(s / 60)}m ago`;
+  return `${Math.floor(s / 3600)}h ago`;
+}
 
-  // group games into rounds (in order of first appearance)
+// derive the lookups the views need from the raw data
+function prepare() {
+  DATA.games.forEach((g) => { g._byId = {}; g.bets.forEach((b) => { g._byId[b.id] = b; }); });
   DATA.rounds = [];
   const seen = new Map();
   DATA.games.forEach((g, i) => {
     if (!seen.has(g.round)) { seen.set(g.round, DATA.rounds.length); DATA.rounds.push({ name: g.round, idxs: [] }); }
     DATA.rounds[seen.get(g.round)].idxs.push(i);
   });
-  roundIdx = DATA.rounds.length - 1; // default = current (latest) round
-
-  // overall standings position for each friend (used in the scoreboard)
   DATA.rankById = {};
   [...DATA.members].sort((a, b) => b.points - a.points).forEach((m, i) => { DATA.rankById[m.id] = i + 1; });
+}
 
-  $("#subtitle").textContent = `${DATA.group.name} · ${DATA.members.length} players · ${DATA.games.length} games · updated ${fmtUpdated(DATA.generatedAt)}`;
+function updateSubtitle() {
+  const checked = STATUS?.checkedAt ? ` · checked ${ago(STATUS.checkedAt)}` : "";
+  $("#subtitle").textContent = `${DATA.group.name} · ${DATA.members.length} players · updated ${fmtUpdated(DATA.generatedAt)}${checked}`;
+}
 
-  // default scoreboard to the most recent played game
-  const lastPlayed = DATA.games.map((g, i) => (g.result1 != null ? i : -1)).filter((i) => i >= 0).pop();
-  gameIndex = lastPlayed ?? DATA.games.length - 1;
+// Pull latest data + heartbeat. Re-render only when the data actually changed (so we don't
+// disrupt your scrolling/sorting). Runs on load and every 60s.
+async function refresh() {
+  let fresh;
+  try { fresh = await fetchJSON("./data/dashboard.json"); } catch { return; }
+  try { STATUS = await fetchJSON("./data/status.json"); } catch {}
 
-  buildGamePicker();
-  renderLeaderboard();
-  renderScoreboard();
+  if (firstLoad || !DATA || fresh.generatedAt !== DATA.generatedAt) {
+    DATA = fresh;
+    prepare();
+    if (firstLoad) {
+      roundIdx = DATA.rounds.length - 1;
+      const lastPlayed = DATA.games.map((g, i) => (g.result1 != null ? i : -1)).filter((i) => i >= 0).pop();
+      gameIndex = lastPlayed ?? DATA.games.length - 1;
+      firstLoad = false;
+    } else {
+      roundIdx = Math.min(roundIdx, DATA.rounds.length - 1);
+      gameIndex = Math.min(gameIndex, DATA.games.length - 1);
+    }
+    buildGamePicker();
+    const sl = $("#lbWrap")?.scrollLeft || 0, sy = window.scrollY; // preserve scroll across re-render
+    renderLeaderboard();
+    renderScoreboard();
+    if ($("#lbWrap")) $("#lbWrap").scrollLeft = sl;
+    window.scrollTo(0, sy);
+  }
+  updateSubtitle();
 }
 
 /* ---------- Leaderboard (grid: people × one round's games) ---------- */
@@ -345,4 +370,5 @@ document.querySelectorAll("#scoreboard th.sortable").forEach((th) =>
   th.addEventListener("click", () => { sbSort = th.dataset.sort; renderScoreboard(); })
 );
 
-load();
+refresh();
+setInterval(refresh, 60_000); // page keeps itself fresh; heartbeat ticks even when idle
