@@ -60,11 +60,12 @@ const rawGames = await get("getEndedGames");
 if (!Array.isArray(rawGames)) throw new Error("getEndedGames did not return a list — bad response");
 console.log(`✅ games: ${rawGames.length}`);
 
-// Window helpers around kickoff. "active" = must update; "soon" = loop tight.
+// Heavy data pull stays "active" from 15 min before kickoff until 4 HOURS after — sport5
+// posts the final score + settled points well after the whistle, so we keep pulling to catch it.
 const now = Date.now();
-const inWindow = (g, leadMin) =>
-  g.beggining && now >= g.beggining - leadMin * 60_000 && now <= g.beggining + 135 * 60_000;
-const active = rawGames.some((g) => inWindow(g, 5)); // live or just finished
+const active = rawGames.some(
+  (g) => g.beggining && now >= g.beggining - 15 * 60_000 && now <= g.beggining + 240 * 60_000
+);
 
 // Always check every 5 min so the "checked" heartbeat stays fresh.
 console.log(`NEXT_SLEEP=300`);
