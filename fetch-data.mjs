@@ -73,8 +73,16 @@ const active = rawGames.some((g) => {
   return within6h || stillTouched;
 });
 
-// Always check every 5 min so the "checked" heartbeat stays fresh.
-console.log(`NEXT_SLEEP=300`);
+// Cadence: normally every 5 min (keeps the heartbeat fresh). But when a new game is about to
+// kick off, wake ~45s AFTER kickoff so the freshly-locked bets show up almost immediately —
+// the "everyone refresh at once" moment.
+const nextKick = rawGames.map((g) => g.beggining).filter((t) => t && t > now).sort((a, b) => a - b)[0];
+let nextSleep = 300;
+if (nextKick) {
+  const until = (nextKick - now) / 1000;
+  if (until > 0 && until < 9 * 60) nextSleep = Math.max(20, Math.round(until + 45));
+}
+console.log(`NEXT_SLEEP=${nextSleep}`);
 
 // Heartbeat: lets the site show "checked X ago" even when nothing changed.
 mkdirSync("./data", { recursive: true });
