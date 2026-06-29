@@ -60,12 +60,18 @@ const rawGames = await get("getEndedGames");
 if (!Array.isArray(rawGames)) throw new Error("getEndedGames did not return a list — bad response");
 console.log(`✅ games: ${rawGames.length}`);
 
-// Heavy data pull stays "active" from 15 min before kickoff until 4 HOURS after — sport5
-// posts the final score + settled points well after the whistle, so we keep pulling to catch it.
-const now = Date.now();
-const active = rawGames.some(
-  (g) => g.beggining && now >= g.beggining - 15 * 60_000 && now <= g.beggining + 240 * 60_000
-);
+// Decide if any game still needs pulling. Rather than assume a fixed game length (breaks for
+// knockout extra-time + penalties), we treat a game as LIVE until sport5 stops touching it:
+//   - from 15 min before kickoff, AND
+//   - while sport5 is still updating it (lastUpdate within the last 40 min), OR within a generous
+//     6h safety floor after kickoff (covers ET + pens + settle lag even if lastUpdate is quiet).
+const now = Date.now(), nowSec = now / 1000;
+const active = rawGames.some((g) => {
+  if (!g.beggining || now < g.beggining - 15 * 60_000) return false;
+  const within6h = now <= g.beggining + 6 * 3600_000;
+  const stillTouched = g.lastUpdate && nowSec - g.lastUpdate < 40 * 60;
+  return within6h || stillTouched;
+});
 
 // Always check every 5 min so the "checked" heartbeat stays fresh.
 console.log(`NEXT_SLEEP=300`);
@@ -120,9 +126,11 @@ const games = await mapLimit(rawGames, 8, async (g) => {
   return {
     gid: g.gid,
     round: g.fixturedata?.name || "",
+    roundId: g.fid ?? g.fixturedata?.fid ?? null, // top-level fid is reliable even when fixturedata errors out
     date: g.fixturedata?.timing || "",
     status: g.status || "",
     kickoff: g.beggining || null,
+    lastUpdate: g.lastUpdate || null,      // sport5's "last touched" time — used to tell if a game is still live
     team1: { name: g.team1?.name, img: g.team1?.img },
     team2: { name: g.team2?.name, img: g.team2?.img },
     result1: num(g.result1),

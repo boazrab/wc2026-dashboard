@@ -81,12 +81,17 @@ function ago(iso) {
 // derive the lookups the views need from the raw data
 function prepare() {
   DATA.games.forEach((g) => { g._byId = {}; g.bets.forEach((b) => { g._byId[b.id] = b; }); });
+  // group by round id (knockout names are blank/inconsistent); label with first non-empty name
   DATA.rounds = [];
   const seen = new Map();
   DATA.games.forEach((g, i) => {
-    if (!seen.has(g.round)) { seen.set(g.round, DATA.rounds.length); DATA.rounds.push({ name: g.round, idxs: [] }); }
-    DATA.rounds[seen.get(g.round)].idxs.push(i);
+    const key = g.roundId != null ? "r" + g.roundId : "n:" + g.round;
+    if (!seen.has(key)) { seen.set(key, DATA.rounds.length); DATA.rounds.push({ roundId: g.roundId, name: "", idxs: [] }); }
+    const r = DATA.rounds[seen.get(key)];
+    r.idxs.push(i);
+    if (!r.name && g.round) r.name = g.round;
   });
+  DATA.rounds.forEach((r) => { if (!r.name) r.name = r.roundId != null ? `Round ${r.roundId + 1}` : "Round"; });
   DATA.ranked = [...DATA.members].sort((a, b) => b.points - a.points);
   DATA.rankById = {};
   DATA.ranked.forEach((m, i) => { DATA.rankById[m.id] = i + 1; });
