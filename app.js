@@ -524,6 +524,15 @@ function showTab(name) {
 /* ---------- Wiring ---------- */
 document.querySelectorAll(".tab").forEach((t) => t.addEventListener("click", () => showTab(t.dataset.tab)));
 $("#lbSearch").addEventListener("input", renderLeaderboard);
+
+// toggle: show/hide champion + top-scorer columns (default OFF, remembered)
+const picksOn = localStorage.getItem("showPicks") === "1";
+$("#picksToggle").checked = picksOn;
+$("#leaderboard").classList.toggle("show-picks", picksOn);
+$("#picksToggle").addEventListener("change", (e) => {
+  $("#leaderboard").classList.toggle("show-picks", e.target.checked);
+  localStorage.setItem("showPicks", e.target.checked ? "1" : "0");
+});
 $("#sbSearch").addEventListener("input", renderScoreboard);
 
 // round navigation (RTL: left = newer round, right = older round)
