@@ -12,6 +12,19 @@ let firstLoad = true;
 let statMgrId = null;   // which manager the Stats tab is showing
 
 const $ = (sel) => document.querySelector(sel);
+
+// Auto-updater: if a newer build is deployed, force this (cached) page to reload fresh — once.
+const BUILD = "b2";
+fetch("version.txt?_=" + Date.now(), { cache: "no-store" })
+  .then((r) => r.text())
+  .then((v) => {
+    v = v.trim();
+    if (v && v !== BUILD && sessionStorage.getItem("ver") !== v) {
+      sessionStorage.setItem("ver", v);
+      location.replace(location.pathname + "?v=" + v);
+    }
+  })
+  .catch(() => {});
 const img = (path) => (path ? IMG_BASE + path : "");
 const esc = (s) => String(s ?? "").replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
 const lastName = (n) => (n || "").trim().split(/\s+/).pop();
