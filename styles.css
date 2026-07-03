@@ -136,8 +136,12 @@ table.matrix-table thead th.freeze { z-index: 6; }   /* above scrolling header c
 .show-picks .f-rank   { left: 146px; }
 .show-picks .f-name   { left: 190px; }
 .show-picks .f-pts    { left: 370px; }
-.picks-toggle { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); cursor: pointer; background: var(--panel-2); border: 1px solid var(--line); padding: 7px 12px; border-radius: 999px; user-select: none; }
-.picks-toggle input { accent-color: var(--me); margin: 0; }
+.picks-toggle { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); cursor: pointer; user-select: none; }
+.picks-toggle input { position: absolute; opacity: 0; width: 0; height: 0; }
+.picks-toggle .switch { position: relative; width: 42px; height: 24px; background: #3a424e; border-radius: 999px; transition: background .15s; flex: none; }
+.picks-toggle .switch::before { content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; transition: left .15s; }
+.picks-toggle input:checked + .switch { background: var(--accent); }
+.picks-toggle input:checked + .switch::before { left: 21px; }
 .cflag { width: 26px; height: 18px; border-radius: 3px; object-fit: cover; vertical-align: middle; }
 
 /* game columns (wide, ~3-4 visible at once) */
