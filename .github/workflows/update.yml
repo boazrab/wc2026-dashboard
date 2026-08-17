@@ -1,8 +1,7 @@
 name: Update dashboard data
 
 on:
-  schedule:
-    - cron: "*/10 * * * *"   # backup: restarts the self-loop if it ever dies
+  # tournament over — auto-schedule + self-loop disabled. Manual runs only.
   workflow_dispatch:
     inputs:
       auto:
@@ -53,12 +52,4 @@ jobs:
           done
           echo "push failed after retries — next cycle will catch up"; exit 0
 
-      - name: Wait, then trigger the next run (self-loop)
-        if: always()                      # CRITICAL: keep the loop alive even if a step failed
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          SLEEP="${{ steps.fetch.outputs.sleep }}"
-          echo "next run in ${SLEEP:-300}s"
-          sleep "${SLEEP:-300}"
-          gh workflow run update.yml --ref main -f auto=true
+      # self-loop removed — tournament is over, nothing to chain to
